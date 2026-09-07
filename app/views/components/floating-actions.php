@@ -2,19 +2,21 @@
 /**
  * Floating actions component: WhatsApp + Help buttons.
  *
- * Present across the institutional site. The Help button is prepared to later
- * integrate with AI; initially it can open a FAQ or contact form.
- *
- * Expects (optional): $whatsappUrl, $helpUrl.
+ * The WhatsApp number and message come from Configurações Gerais (never
+ * hardcoded). The Help button opens the help/FAQ area and is prepared for
+ * future AI integration.
+ * @var App\Libraries\Translator $t
  */
-$whatsappUrl = $whatsappUrl ?? '#';
-$helpUrl = $helpUrl ?? '#';
+$whatsapp = whatsapp_link();
+$helpUrl = $helpUrl ?? '/faq';
 ?>
 <div class="floating-actions" aria-label="<?= e(__('common.actions.help')) ?>">
-    <a href="<?= e($whatsappUrl) ?>" class="floating-btn floating-btn--whatsapp"
-       target="_blank" rel="noopener" aria-label="WhatsApp">
-        <i class="bi bi-whatsapp" aria-hidden="true"></i>
-    </a>
+    <?php if ($whatsapp !== null): ?>
+        <a href="<?= e($whatsapp) ?>" class="floating-btn floating-btn--whatsapp"
+           target="_blank" rel="noopener" aria-label="WhatsApp">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i>
+        </a>
+    <?php endif; ?>
     <a href="<?= e($helpUrl) ?>" class="floating-btn floating-btn--help"
        aria-label="<?= e(__('common.actions.help')) ?>">
         <i class="bi bi-question-lg" aria-hidden="true"></i>

@@ -88,7 +88,8 @@ múltiplos modelos de IA sem refatoração estrutural.
    `config/database.local.php` (ignorado pelo git) — ele sobrescreve o padrão.
    > O projeto **não usa `.env`**. Todas as demais configurações ficam no banco
    > (módulo Configurações Gerais) e são lidas pelo `ConfigService`.
-3. Crie o banco e execute a migration inicial **manualmente** (veja abaixo).
+3. Crie o banco e execute as migrations **manualmente**, em ordem crescente de
+   versão (veja "Como atualizar"). Requer a extensão `pdo_mysql` do PHP.
 4. Aponte o document root do servidor para `/public`.
    Localmente, para testar rápido:
 
@@ -101,20 +102,40 @@ múltiplos modelos de IA sem refatoração estrutural.
    - E-mail: `admin@lrvweb.local`
    - Senha: `ChangeMe!2026`
 
+6. No painel (`/app`), abra **Configurações** e preencha:
+   - **Site**: nome, logo, contato, WhatsApp e redes sociais.
+   - **E-mail (SMTP)**: host, porta, usuário, senha, remetente — necessário para
+     enviar a confirmação da lista de espera e a recuperação de senha. Enquanto
+     o SMTP não estiver configurado, o cadastro funciona normalmente e o envio é
+     apenas registrado no log.
+   - **SEO** e **Integrações** (Analytics): opcionais.
+   - **WhatsApp** e **IA**: campos preparados para integrações futuras.
+
+### Acesso ao Super Admin
+
+O Super Admin tem acesso absoluto (todos os módulos e configurações) e pode
+personificar outros usuários pelo painel de Usuários, com registro em log e
+retorno imediato à conta original.
+
 ## Como atualizar
 
 Toda alteração no banco gera um **novo** arquivo `.sql` em
 `/database/migrations`. As migrations são cumulativas e **nunca** editadas
 depois de aplicadas. Não há execução automática nem rota de migration.
 
-Para aplicar uma migration, abra o arquivo `.sql`, revise e execute o conteúdo
-manualmente no MySQL, por exemplo:
+Para aplicar as migrations, abra cada arquivo `.sql`, revise e execute o
+conteúdo manualmente no MySQL, **em ordem crescente de versão**:
 
 ```bash
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0001_20260907_create_core_tables.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0002_20260907_create_plans.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0003_20260907_create_waitlist.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0004_20260907_create_password_resets.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0005_20260907_add_phone_to_users.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0006_20260907_seed_phase1_permissions_settings.sql
 ```
 
-Aplique as migrations em ordem crescente de versão.
+Nunca edite uma migration já aplicada: para mudar o banco, crie uma nova.
 
 ## Como realizar backup
 

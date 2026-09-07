@@ -17,4 +17,5 @@ return [
     'unique'    => 'Este :attribute já está em uso.',
     'numeric'   => 'O campo :attribute deve ser um número.',
     'url'       => 'Informe uma URL válida.',
+    'phone'     => 'Informe um telefone válido.',
 ];

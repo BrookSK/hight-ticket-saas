@@ -101,13 +101,66 @@ if (!function_exists('method_field')) {
 if (!function_exists('config_value')) {
     /**
      * Read a database-backed setting through the single config layer.
+     *
+     * Degrades gracefully to the default if the config layer/database is
+     * unavailable, so public pages never break on infrastructure issues.
      */
     function config_value(string $key, ?string $default = null): ?string
     {
-        $config = app(App\Services\ConfigService::class);
+        try {
+            $config = app(App\Services\ConfigService::class);
 
-        return $config instanceof App\Services\ConfigService
-            ? $config->get($key, $default)
-            : $default;
+            return $config instanceof App\Services\ConfigService
+                ? ($config->get($key, $default) ?? $default)
+                : $default;
+        } catch (Throwable) {
+            return $default;
+        }
+    }
+}
+
+if (!function_exists('auth')) {
+    /**
+     * Access the AuthService (current user, permission checks).
+     */
+    function auth(): ?App\Services\AuthService
+    {
+        $service = app(App\Services\AuthService::class);
+
+        return $service instanceof App\Services\AuthService ? $service : null;
+    }
+}
+
+if (!function_exists('can')) {
+    /**
+     * Whether the current user has a granular permission.
+     */
+    function can(string $permission): bool
+    {
+        return auth()?->can($permission) ?? false;
+    }
+}
+
+if (!function_exists('whatsapp_link')) {
+    /**
+     * Build a WhatsApp click-to-chat URL from the configured number/message.
+     * Returns null when no number is configured.
+     */
+    function whatsapp_link(): ?string
+    {
+        $number = config_value('site_whatsapp');
+        if ($number === null || $number === '') {
+            return null;
+        }
+
+        $digits = preg_replace('/\D+/', '', $number) ?? '';
+        if ($digits === '') {
+            return null;
+        }
+
+        $message = config_value('whatsapp_message', '');
+        $query = $message !== '' && $message !== null ? '?text=' . rawurlencode($message) : '';
+
+        return 'https://wa.me/' . $digits . $query;
     }
 }

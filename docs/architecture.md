@@ -77,3 +77,44 @@ negócio.
   (`data-confirm`) e estado de carregamento. Nunca `alert()`.
 - Layouts em `app/views/layouts`: `public` (institucional) e `app`
   (administrativo, com sidebar responsiva). Ícones: apenas Bootstrap Icons.
+
+## Módulos da Fase 1
+
+### Site institucional (público)
+- `PublicController` renderiza Home, Recursos, Como funciona, Planos, FAQ,
+  Contato, Termos e Privacidade, usando o layout `public`.
+- `SeoController` serve `/robots.txt` e `/sitemap.xml` dinamicamente.
+- Header, footer e ações flutuantes (WhatsApp/Ajuda) leem dados das
+  Configurações Gerais. Recursos futuros são exibidos como "em desenvolvimento".
+
+### Lista de espera
+- Público: `WaitlistController` (form simples nome/e-mail/telefone + opcionais)
+  com CSRF, honeypot + time-trap (anti-spam), rate limit e captura de UTM/origem.
+- Regras em `WaitlistService`: validação, deduplicação por e-mail, registro de
+  atividade (timeline), evento `waitlist.lead.created` e e-mail de confirmação
+  (quando o SMTP estiver configurado).
+- Admin: `Admin\WaitlistController` com listagem (busca, filtros, ordenação,
+  paginação), detalhe com timeline, troca de status, notas internas, exclusão
+  (soft delete) e exportação CSV dos registros filtrados.
+
+### Painel Super Admin (`/app`)
+- `Admin\DashboardController`: métricas da lista de espera.
+- `Admin\PlanController`: CRUD de planos (preços editáveis, nunca hardcoded).
+- `Admin\UserController`: CRUD de usuários + impersonação (Super Admin).
+- `Admin\RoleController`: edição de permissões por perfil (ACL), limpando o
+  cache de permissões após salvar.
+- `Admin\SettingsController`: Configurações Gerais por categoria (site, e-mail,
+  SEO, WhatsApp, IA, integrações, segurança); segredos são write-only na UI.
+- `Admin\LogController`: visualização do log de auditoria.
+
+### Segurança da Fase 1
+- `RateLimiter` (cache) em login, recuperação de senha e lista de espera.
+- Recuperação de senha com token único e expiração (`UserService`,
+  `PasswordResetRepository`), sempre com mensagem neutra.
+- `ActivityLogService` registra login/logout, CRUD, alterações de configuração,
+  cadastro/edição de leads, impersonação e exportações.
+
+### Preparação para o futuro (sem implementar agora)
+- Multi-tenancy: `waitlist_leads.tenant_id` (nullable) já previsto.
+- WhatsApp (Evolution API) e IA: campos de configuração prontos, sem automação.
+- API: `routes/api.php` separado, com envelope JSON padrão.

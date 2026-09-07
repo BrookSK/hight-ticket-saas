@@ -10,32 +10,36 @@ use App\Libraries\Response;
 use App\Services\AuthService;
 
 /**
- * Base middleware enforcing a granular ACL permission.
+ * Middleware enforcing a granular ACL permission.
  *
- * Concrete middlewares extend this and declare the required permission key via
- * permission(). Example:
+ * Instantiate with the required permission key and pass the instance in the
+ * route's middleware list, e.g.:
  *
- *   final class UsersViewMiddleware extends PermissionMiddleware
- *   {
- *       protected function permission(): string { return 'users.view'; }
- *   }
+ *   new PermissionMiddleware('waitlist.view')
  *
- * This keeps route definitions declarative while permission checks stay in one
- * place. Super Admin always passes (absolute access, handled in AuthService).
+ * The Router accepts both class-string and middleware instances. Super Admin
+ * always passes (absolute access, handled in AuthService::can).
  */
-abstract class PermissionMiddleware implements MiddlewareInterface
+class PermissionMiddleware implements MiddlewareInterface
 {
+    public function __construct(private readonly string $permission)
+    {
+    }
+
     /**
-     * The granular permission key required to proceed (e.g. "users.view").
+     * Convenience factory for readable route definitions.
      */
-    abstract protected function permission(): string;
+    public static function for(string $permission): self
+    {
+        return new self($permission);
+    }
 
     public function handle(Request $request, Container $container, callable $next): void
     {
         /** @var AuthService $auth */
         $auth = $container->get(AuthService::class);
 
-        if ($auth->can($this->permission())) {
+        if ($auth->can($this->permission)) {
             $next($request);
 
             return;

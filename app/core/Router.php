@@ -168,13 +168,14 @@ final class Router
         };
 
         // Build the middleware chain in reverse so it executes in order.
+        // A middleware entry may be a class-string or a ready MiddlewareInterface instance.
         $pipeline = array_reduce(
             array_reverse($route['middlewares']),
-            static function (callable $next, string $middlewareClass) use ($container): callable {
-                return static function (Request $request) use ($middlewareClass, $container, $next): void {
-                    /** @var MiddlewareInterface $middleware */
-                    $middleware = new $middlewareClass();
-                    $middleware->handle($request, $container, $next);
+            static function (callable $next, string|MiddlewareInterface $middleware) use ($container): callable {
+                return static function (Request $request) use ($middleware, $container, $next): void {
+                    $instance = is_string($middleware) ? new $middleware() : $middleware;
+                    /** @var MiddlewareInterface $instance */
+                    $instance->handle($request, $container, $next);
                 };
             },
             $destination

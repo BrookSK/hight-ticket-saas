@@ -13,10 +13,23 @@ use App\Libraries\Response;
 use App\Libraries\Session;
 use App\Libraries\Translator;
 use App\Events\EventDispatcher;
+use App\Repositories\ActivityLogRepository;
+use App\Repositories\PasswordResetRepository;
+use App\Repositories\PlanRepository;
+use App\Repositories\RoleRepository;
 use App\Repositories\SettingRepository;
 use App\Repositories\UserRepository;
+use App\Repositories\WaitlistActivityRepository;
+use App\Repositories\WaitlistLeadRepository;
+use App\Services\ActivityLogService;
 use App\Services\AuthService;
 use App\Services\ConfigService;
+use App\Services\EmailTemplateService;
+use App\Services\MailService;
+use App\Services\PlanService;
+use App\Services\RateLimiter;
+use App\Services\UserService;
+use App\Services\WaitlistService;
 
 /**
  * Application kernel.
@@ -128,6 +141,36 @@ final class Kernel
             static fn (Container $c): UserRepository => new UserRepository($c->get('database'))
         );
 
+        $c->singleton(
+            WaitlistLeadRepository::class,
+            static fn (Container $c): WaitlistLeadRepository => new WaitlistLeadRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            WaitlistActivityRepository::class,
+            static fn (Container $c): WaitlistActivityRepository => new WaitlistActivityRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            PlanRepository::class,
+            static fn (Container $c): PlanRepository => new PlanRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            PasswordResetRepository::class,
+            static fn (Container $c): PasswordResetRepository => new PasswordResetRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            RoleRepository::class,
+            static fn (Container $c): RoleRepository => new RoleRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            ActivityLogRepository::class,
+            static fn (Container $c): ActivityLogRepository => new ActivityLogRepository($c->get('database'))
+        );
+
         // Services.
         $c->singleton(
             ConfigService::class,
@@ -137,6 +180,41 @@ final class Kernel
         $c->singleton(
             AuthService::class,
             static fn (Container $c): AuthService => new AuthService($c)
+        );
+
+        $c->singleton(
+            RateLimiter::class,
+            static fn (Container $c): RateLimiter => new RateLimiter($c)
+        );
+
+        $c->singleton(
+            ActivityLogService::class,
+            static fn (Container $c): ActivityLogService => new ActivityLogService($c)
+        );
+
+        $c->singleton(
+            EmailTemplateService::class,
+            static fn (Container $c): EmailTemplateService => new EmailTemplateService($c)
+        );
+
+        $c->singleton(
+            MailService::class,
+            static fn (Container $c): MailService => new MailService($c)
+        );
+
+        $c->singleton(
+            WaitlistService::class,
+            static fn (Container $c): WaitlistService => new WaitlistService($c)
+        );
+
+        $c->singleton(
+            PlanService::class,
+            static fn (Container $c): PlanService => new PlanService($c)
+        );
+
+        $c->singleton(
+            UserService::class,
+            static fn (Container $c): UserService => new UserService($c)
         );
     }
 

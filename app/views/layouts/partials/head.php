@@ -1,13 +1,21 @@
 <?php
 /**
- * Shared <head> partial.
+ * Shared <head> partial with SEO + analytics.
  *
  * Expects (all optional): $title, $metaDescription, $canonical, $ogImage.
- * SEO tags are rendered here so institutional pages inherit them consistently.
+ * SEO defaults and analytics IDs come from Configurações Gerais (never hardcoded).
  * @var App\Libraries\Translator $t
  */
-$pageTitle = isset($title) && $title !== '' ? $title : __('common.app_name');
-$description = $metaDescription ?? __('common.app_tagline');
+$systemName = config_value('system_name', 'LRV Web');
+$pageTitle = isset($title) && $title !== ''
+    ? $title . ' — ' . $systemName
+    : config_value('seo_title', $systemName);
+$description = $metaDescription ?? config_value('seo_description', __('common.app_tagline'));
+$ogImage = $ogImage ?? config_value('seo_og_image');
+$gaId = config_value('analytics_ga_id');
+$gtmId = config_value('analytics_gtm_id');
+$clarityId = config_value('analytics_clarity_id');
+$googleVerification = config_value('seo_google_verification');
 ?>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -16,6 +24,9 @@ $description = $metaDescription ?? __('common.app_tagline');
 <meta name="robots" content="index, follow">
 <?php if (!empty($canonical)): ?>
 <link rel="canonical" href="<?= e($canonical) ?>">
+<?php endif; ?>
+<?php if (!empty($googleVerification)): ?>
+<meta name="google-site-verification" content="<?= e($googleVerification) ?>">
 <?php endif; ?>
 
 <!-- Open Graph -->
@@ -31,7 +42,6 @@ $description = $metaDescription ?? __('common.app_tagline');
 <meta name="twitter:title" content="<?= e($pageTitle) ?>">
 <meta name="twitter:description" content="<?= e($description) ?>">
 
-<!-- CSRF token available to scripts -->
 <meta name="csrf-token" content="<?= e($csrfToken ?? '') ?>">
 
 <!-- Bootstrap 5 + Bootstrap Icons (single icon library) -->
@@ -40,3 +50,17 @@ $description = $metaDescription ?? __('common.app_tagline');
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
 <link href="/assets/css/tokens.css" rel="stylesheet">
 <link href="/assets/css/app.css" rel="stylesheet">
+
+<?php if (!empty($gtmId)): ?>
+<!-- Google Tag Manager -->
+<script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','<?= e($gtmId) ?>');</script>
+<?php endif; ?>
+<?php if (!empty($gaId)): ?>
+<!-- Google Analytics -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=<?= e($gaId) ?>"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','<?= e($gaId) ?>');</script>
+<?php endif; ?>
+<?php if (!empty($clarityId)): ?>
+<!-- Microsoft Clarity -->
+<script>(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);})(window,document,"clarity","script","<?= e($clarityId) ?>");</script>
+<?php endif; ?>
