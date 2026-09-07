@@ -1,0 +1,25 @@
+# Initial .htaccess coherent with the layered architecture.
+# NOTE: When the official "LRV Web" standard .htaccess is provided, it must
+# replace this file exactly (never alter its structure).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect trailing slashes if not a folder.
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send all requests to the front controller unless the file exists.
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# Security: do not serve dotfiles.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# Disable directory listing.
+Options -Indexes

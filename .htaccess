@@ -1,0 +1,21 @@
+# Root .htaccess.
+# When the document root points at the project root (instead of /public), this
+# forwards all requests into the public/ front controller. On production, set
+# the document root directly to /public and rely on public/.htaccess.
+#
+# NOTE: If the official "LRV Web" standard .htaccess is provided, replace this
+# file exactly (never alter its structure).
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    RewriteCond %{REQUEST_URI} !^/public/
+    RewriteRule ^(.*)$ public/$1 [L]
+</IfModule>
+
+# Security: do not serve dotfiles.
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+Options -Indexes

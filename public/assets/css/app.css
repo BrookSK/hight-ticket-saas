@@ -1,0 +1,131 @@
+/*
+ * Application base styles + Design System components.
+ *
+ * Complements Bootstrap 5 with brand tokens. Components here (buttons, cards,
+ * badges, toasts, empty states, etc.) must stay consistent across the whole
+ * system. Organised by concern; never duplicate styles.
+ */
+
+/* ------------------------------------------------------------------ base */
+body {
+    font-family: var(--font-sans);
+    color: var(--color-text);
+    background-color: var(--color-bg-subtle);
+    line-height: var(--line-height-base);
+}
+
+a {
+    color: var(--color-primary-600);
+    text-decoration: none;
+    transition: color var(--transition-base);
+}
+
+a:hover {
+    color: var(--color-primary-700);
+}
+
+/* --------------------------------------------------------------- buttons */
+.btn-brand {
+    background-image: var(--gradient-brand);
+    border: none;
+    color: var(--color-text-inverse);
+    border-radius: var(--radius-md);
+    padding: var(--space-2) var(--space-4);
+    font-weight: 600;
+    transition: filter var(--transition-base), transform var(--transition-base);
+}
+
+.btn-brand:hover {
+    color: var(--color-text-inverse);
+    filter: brightness(1.05);
+}
+
+.btn-brand:active {
+    transform: translateY(1px);
+}
+
+/* ----------------------------------------------------------------- cards */
+.card-surface {
+    background-color: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+}
+
+/* ---------------------------------------------------------------- badges */
+.badge-soft-primary {
+    background-color: var(--color-primary-100);
+    color: var(--color-primary-700);
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+}
+
+/* ------------------------------------------------------------ empty state */
+.empty-state {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+    color: var(--color-text-muted);
+}
+
+.empty-state .empty-state__icon {
+    font-size: 3rem;
+    color: var(--color-primary-400);
+    margin-bottom: var(--space-4);
+}
+
+/* --------------------------------------------------------------- sidebar */
+.app-sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--color-surface);
+    border-right: 1px solid var(--color-border);
+    min-height: 100vh;
+}
+
+.app-navbar {
+    height: var(--navbar-height);
+    background-color: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+}
+
+/* --------------------------------------------------------- floating chat */
+.floating-actions {
+    position: fixed;
+    right: var(--space-5);
+    bottom: var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    z-index: 1050;
+}
+
+.floating-actions .floating-btn {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-lg);
+    font-size: 1.5rem;
+    border: none;
+    color: var(--color-text-inverse);
+    transition: transform var(--transition-base);
+}
+
+.floating-actions .floating-btn:hover {
+    transform: scale(1.06);
+}
+
+.floating-btn--whatsapp { background-color: #25d366; }
+.floating-btn--help     { background-image: var(--gradient-brand); }
+
+/* --------------------------------------------------------------- toasts */
+.toast-container {
+    z-index: 1100;
+}
+
+/* ------------------------------------------------- accessibility / focus */
+:focus-visible {
+    outline: 3px solid var(--color-primary-300);
+    outline-offset: 2px;
+}

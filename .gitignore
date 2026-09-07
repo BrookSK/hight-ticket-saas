@@ -1,0 +1,21 @@
+# Dependencies
+/vendor/
+node_modules/
+
+# Storage runtime (keep folders, ignore contents)
+/storage/logs/*
+!/storage/logs/.gitkeep
+/storage/uploads/*
+!/storage/uploads/.gitkeep
+/storage/temp/*
+!/storage/temp/.gitkeep
+/storage/cache/*
+!/storage/cache/.gitkeep
+
+# Database connection config (local, per environment — never committed)
+/config/database.local.php
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.log
