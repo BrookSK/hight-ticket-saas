@@ -133,9 +133,78 @@ mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0003_20260907_create_wai
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0004_20260907_create_password_resets.sql
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0005_20260907_add_phone_to_users.sql
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0006_20260907_seed_phase1_permissions_settings.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0007_20260907_create_audits.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0008_20260907_create_audit_details.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0009_20260907_seed_audit_permissions_settings.sql
 ```
 
 Nunca edite uma migration já aplicada: para mudar o banco, crie uma nova.
+
+## Módulo de Auditoria (Scanner)
+
+O motor de auditoria analisa um site público e gera um diagnóstico com scores,
+problemas priorizados e recomendações.
+
+### Como funciona
+
+O fluxo respeita a arquitetura em camadas e roda de forma assíncrona:
+
+```
+Criar auditoria (web)  ->  fila (status "queued")
+Worker CLI             ->  crawler -> analisadores -> score -> relatório
+Interface              ->  acompanha o progresso por polling
+```
+
+O crawler completo **nunca** roda dentro de uma requisição web.
+
+### Processando a fila (worker)
+
+Execute o worker manualmente ou via cron:
+
+```bash
+php bin/audit-worker.php          # processa tudo que está na fila e sai
+php bin/audit-worker.php --loop   # fica processando continuamente
+php bin/audit-worker.php --once   # processa uma auditoria e sai
+```
+
+Exemplo de cron (a cada minuto):
+
+```
+* * * * * php /caminho/bin/audit-worker.php >> /caminho/storage/logs/worker.log 2>&1
+```
+
+O worker é idempotente: se for interrompido, a auditoria não corrompe e é
+automaticamente retomada (detecção de auditorias "presas" via heartbeat).
+
+### Limites e configuração
+
+Ajuste em **Configurações** (grupo "audit"): máximo de páginas, profundidade,
+timeout, delay entre requisições, tamanho máximo de resposta, limite diário por
+usuário e o User-Agent do robô. Core Web Vitals ficam como "não disponível" até
+a integração futura com o PageSpeed Insights (chave nas configurações).
+
+### Segurança
+
+Toda requisição externa passa por uma camada anti-SSRF (`App\Libraries\Http\SsrfGuard`):
+bloqueia localhost, IPs privados/reservados/link-local, endpoints de metadados de
+cloud, valida DNS e re-valida no momento da conexão (anti-rebinding). O scanner é
+passivo e não destrutivo. O isolamento de dados é garantido pelo contexto de
+acesso: cada usuário só vê as próprias auditorias (Super Admin vê todas).
+
+### Como criar uma nova regra de auditoria
+
+Cada verificação vive em um analisador determinístico em
+`app/libraries/Audit/Analyzers/` implementando `AnalyzerInterface`. Para uma
+nova regra, adicione um `Issue` (id, categoria, severidade, confiança,
+título, descrição, impacto, recomendação, evidência) no analisador adequado — ou
+crie um novo analisador e registre-o no pipeline em `AuditService::runAnalyzers()`.
+O `ScoringEngine` pondera automaticamente a penalidade por severidade e confiança.
+
+### PDF
+
+O relatório é HTML (fonte única). Com a dependência opcional **dompdf/dompdf**
+instalada, o botão "PDF" gera o arquivo; sem ela, o relatório abre pronto para
+"Imprimir / Salvar como PDF" pelo navegador.
 
 ## Como realizar backup
 

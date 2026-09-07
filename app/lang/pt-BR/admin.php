@@ -10,6 +10,7 @@ return [
     'nav' => [
         'dashboard' => 'Painel',
         'waitlist'  => 'Lista de espera',
+        'audits'    => 'Auditorias',
         'plans'     => 'Planos',
         'users'     => 'Usuários',
         'roles'     => 'Perfis',

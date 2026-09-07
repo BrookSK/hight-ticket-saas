@@ -118,3 +118,53 @@ negócio.
 - Multi-tenancy: `waitlist_leads.tenant_id` (nullable) já previsto.
 - WhatsApp (Evolution API) e IA: campos de configuração prontos, sem automação.
 - API: `routes/api.php` separado, com envelope JSON padrão.
+
+## Módulo de Auditoria (Fase 2)
+
+Motor de análise de sites, dividido em módulos independentes para permitir
+adicionar novos analisadores sem reescrever o scanner.
+
+### Pipeline
+
+```
+AuditService::process()
+  -> coleta robots.txt + sitemap.xml
+  -> Crawler (SSRF-safe HttpClient) -> páginas (persistidas incrementalmente)
+  -> Analyzers determinísticos (SEO, HTTPS, cabeçalhos, performance,
+     acessibilidade, conteúdo, tecnologias, contatos, links)
+  -> ScoringEngine (scores por categoria + geral)
+  -> persistência (issues/metrics/technologies/contacts/links + resultado)
+```
+
+### Camada HTTP e SSRF (reutilizável)
+
+- `App\Libraries\Http\SsrfGuard`: validação/normalização de URL e bloqueio de
+  destinos internos; usada por qualquer recurso que faça requisições externas.
+- `App\Libraries\Http\HttpClient`: cURL (fallback stream) com timeouts, limite
+  de tamanho, User-Agent próprio, redirects re-validados e IP "pinado"
+  (anti-DNS-rebinding).
+
+### Processamento assíncrono
+
+- `bin/audit-worker.php` processa a fila. Idempotente: claim atômico
+  (`AuditRepository::claimNextQueued`), heartbeat durante o crawl e recuperação
+  de auditorias presas (`requeueStuck`). Compatível com CLI e cron.
+- O request web apenas cria a auditoria (status `queued`); nunca executa o crawl.
+
+### Isolamento de dados
+
+`App\Services\AccessContext` abstrai o "dono" do recurso (hoje o usuário;
+futuramente um tenant). Toda leitura de auditoria passa por
+`AuditRepository::findForContext/listForContext`. Super Admin vê tudo.
+
+### Relatório e PDF
+
+O relatório é um HTML único (`app/views/audits/report.php`), servido print-ready
+e reutilizado por `PdfService` quando o Dompdf está instalado. Trocar o motor de
+PDF não exige reescrever o relatório.
+
+### Dados reutilizáveis (fases futuras)
+
+Os dados ficam separados em brutos (páginas), detalhados (issues, métricas,
+tecnologias, contatos, links) e processados (`audit_results`, chave `summary`),
+permitindo reaproveitamento futuro (CRM, leads, IA, comparação) sem recrawl.

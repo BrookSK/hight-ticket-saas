@@ -13,7 +13,11 @@ use App\Libraries\Response;
 use App\Libraries\Session;
 use App\Libraries\Translator;
 use App\Events\EventDispatcher;
+use App\Libraries\Http\HttpClient;
+use App\Libraries\Http\SsrfGuard;
 use App\Repositories\ActivityLogRepository;
+use App\Repositories\AuditDataRepository;
+use App\Repositories\AuditRepository;
 use App\Repositories\PasswordResetRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\RoleRepository;
@@ -21,10 +25,13 @@ use App\Repositories\SettingRepository;
 use App\Repositories\UserRepository;
 use App\Repositories\WaitlistActivityRepository;
 use App\Repositories\WaitlistLeadRepository;
+use App\Services\AccessContext;
 use App\Services\ActivityLogService;
+use App\Services\AuditService;
 use App\Services\AuthService;
 use App\Services\ConfigService;
 use App\Services\EmailTemplateService;
+use App\Services\PdfService;
 use App\Services\MailService;
 use App\Services\PlanService;
 use App\Services\RateLimiter;
@@ -171,6 +178,37 @@ final class Kernel
             static fn (Container $c): ActivityLogRepository => new ActivityLogRepository($c->get('database'))
         );
 
+        $c->singleton(
+            AuditRepository::class,
+            static fn (Container $c): AuditRepository => new AuditRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            AuditDataRepository::class,
+            static fn (Container $c): AuditDataRepository => new AuditDataRepository($c->get('database'))
+        );
+
+        // SSRF guard (reusable by any outbound-request feature).
+        $c->singleton('ssrfGuard', static fn (): SsrfGuard => new SsrfGuard());
+
+        // HTTP client, configured from database-backed audit settings.
+        $c->singleton('httpClient', static function (Container $c): HttpClient {
+            /** @var ConfigService $config */
+            $config = $c->get(ConfigService::class);
+            $timeout = (int) ($config->get('audit_request_timeout', '15') ?? 15);
+            $maxBytes = (int) ($config->get('audit_max_response_bytes', '3145728') ?? 3145728);
+            $userAgent = (string) ($config->get('audit_user_agent', 'LRVWebAuditBot/1.0') ?? 'LRVWebAuditBot/1.0');
+
+            return new HttpClient(
+                $c->get('ssrfGuard'),
+                $userAgent,
+                min(10, $timeout),
+                max(5, $timeout),
+                $maxBytes,
+                5
+            );
+        });
+
         // Services.
         $c->singleton(
             ConfigService::class,
@@ -180,6 +218,21 @@ final class Kernel
         $c->singleton(
             AuthService::class,
             static fn (Container $c): AuthService => new AuthService($c)
+        );
+
+        $c->singleton(
+            AccessContext::class,
+            static fn (Container $c): AccessContext => new AccessContext($c)
+        );
+
+        $c->singleton(
+            AuditService::class,
+            static fn (Container $c): AuditService => new AuditService($c)
+        );
+
+        $c->singleton(
+            PdfService::class,
+            static fn (Container $c): PdfService => new PdfService($c)
         );
 
         $c->singleton(

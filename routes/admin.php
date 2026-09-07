@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Controllers\Admin\AuditController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\LogController;
 use App\Controllers\Admin\PlanController;
@@ -36,6 +37,15 @@ return static function (Router $router): void {
         $router->post('/waitlist/{id}/status', [WaitlistController::class, 'updateStatus'], [PermissionMiddleware::for('waitlist.edit'), CsrfMiddleware::class]);
         $router->post('/waitlist/{id}/notes', [WaitlistController::class, 'updateNotes'], [PermissionMiddleware::for('waitlist.edit'), CsrfMiddleware::class]);
         $router->post('/waitlist/{id}/delete', [WaitlistController::class, 'delete'], [PermissionMiddleware::for('waitlist.delete'), CsrfMiddleware::class]);
+
+        // Audits (Fase 2).
+        $router->get('/audits', [AuditController::class, 'index'], [PermissionMiddleware::for('audits.view')]);
+        $router->get('/audits/create', [AuditController::class, 'create'], [PermissionMiddleware::for('audits.create')]);
+        $router->post('/audits', [AuditController::class, 'store'], [PermissionMiddleware::for('audits.create'), CsrfMiddleware::class]);
+        $router->get('/audits/{id}', [AuditController::class, 'show'], [PermissionMiddleware::for('audits.view')]);
+        $router->get('/audits/{id}/progress', [AuditController::class, 'progress'], [PermissionMiddleware::for('audits.view')]);
+        $router->get('/audits/{id}/report', [AuditController::class, 'report'], [PermissionMiddleware::for('audits.export')]);
+        $router->post('/audits/{id}/delete', [AuditController::class, 'delete'], [PermissionMiddleware::for('audits.delete'), CsrfMiddleware::class]);
 
         // Plans.
         $router->get('/plans', [PlanController::class, 'index'], [PermissionMiddleware::for('plans.view')]);

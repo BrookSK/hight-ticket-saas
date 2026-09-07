@@ -6,6 +6,9 @@
     "require": {
         "php": ">=8.3"
     },
+    "suggest": {
+        "dompdf/dompdf": "Recomendado: geração de relatórios de auditoria em PDF (HTML -> PDF). Sem ele, o relatório é servido em HTML pronto para impressão."
+    },
     "autoload": {
         "psr-4": {
             "App\\": "app/"

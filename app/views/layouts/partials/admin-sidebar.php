@@ -9,6 +9,7 @@ $activePath = $activePath ?? '';
 $items = [
     ['/app',           'bi-speedometer2', __('admin.nav.dashboard'), 'dashboard.view'],
     ['/app/waitlist',  'bi-people',       __('admin.nav.waitlist'),  'waitlist.view'],
+    ['/app/audits',    'bi-radar',        __('admin.nav.audits'),    'audits.view'],
     ['/app/plans',     'bi-tags',         __('admin.nav.plans'),     'plans.view'],
     ['/app/users',     'bi-person-gear',  __('admin.nav.users'),     'users.view'],
     ['/app/roles',     'bi-shield-lock',  __('admin.nav.roles'),     'roles.view'],

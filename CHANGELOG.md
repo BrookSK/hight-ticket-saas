@@ -3,6 +3,17 @@
 Histórico de novidades da plataforma, escrito para o usuário final.
 O projeto segue versionamento semântico (MAJOR.MINOR.PATCH).
 
+## [0.3.0] - 2026-09-07
+
+- Novo módulo de Auditoria de Sites: informe uma URL e receba uma análise completa.
+- Análise de SEO, performance, segurança, acessibilidade, conteúdo e tecnologias.
+- Detecção de WordPress, Elementor, WooCommerce e outras tecnologias, com nível de confiança.
+- Pontuação geral e por categoria, com problemas priorizados e recomendações claras.
+- Relatório profissional pronto para apresentar ao cliente, com exportação em PDF.
+- Histórico de auditorias e acompanhamento do progresso em tempo real.
+- Verificação de links quebrados, robots.txt e sitemap.
+- Análise segura: o sistema respeita os sites e não executa ações invasivas.
+
 ## [0.2.0] - 2026-09-07
 
 - Novo site institucional completo: página inicial, recursos, como funciona, planos, perguntas frequentes e contato.
