@@ -15,6 +15,7 @@ $items = [
     ['/app/leads',     'bi-briefcase',    __('admin.nav.leads'),     'leads.view'],
     ['/app/pipeline',  'bi-kanban',       __('admin.nav.pipeline'),  'pipeline.view'],
     ['/app/prospecting', 'bi-binoculars', __('admin.nav.prospecting'), 'prospecting.view'],
+    ['/app/outreach',  'bi-send',         __('admin.nav.outreach'),  'outreach.view'],
     ['/app/plans',     'bi-tags',         __('admin.nav.plans'),     'plans.view'],
     ['/app/users',     'bi-person-gear',  __('admin.nav.users'),     'users.view'],
     ['/app/roles',     'bi-shield-lock',  __('admin.nav.roles'),     'roles.view'],

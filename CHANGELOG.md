@@ -3,6 +3,19 @@
 Histórico de novidades da plataforma, escrito para o usuário final.
 O projeto segue versionamento semântico (MAJOR.MINOR.PATCH).
 
+## [0.6.0] - 2026-09-07
+
+- Nova área Comercial / Outreach para automatizar o trabalho operacional do vendedor, sempre com você no controle.
+- Prepare contatos por WhatsApp ou e-mail a partir das oportunidades, com pré-visualização antes de enviar.
+- Templates de mensagem com variáveis (ex.: {{first_name}}, {{company}}); o sistema avisa se uma variável for desconhecida.
+- Sequências de follow-up que param automaticamente quando o lead responde, agenda reunião, fecha ou pede opt-out.
+- Caixa de saída com aprovação humana: nenhuma mensagem é enviada sem a sua confirmação.
+- Proteções antispam integradas: janela de envio, limites por hora/dia, intervalo mínimo entre contatos e lista de opt-out.
+- Central de conversas com histórico e destaque para respostas que precisam de atenção.
+- Relatórios comerciais compartilháveis por link, com validade, revogação e contagem de acessos.
+- Integração de WhatsApp preparada (Evolution) e envio de e-mail por SMTP; ambos ativados nas Configurações Gerais.
+- Envio em segundo plano, resiliente e sem duplicidades.
+
 ## [0.5.0] - 2026-09-07
 
 - Agora você pode criar campanhas para encontrar novas oportunidades comerciais.

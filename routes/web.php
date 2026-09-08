@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 use App\Controllers\AuthController;
 use App\Controllers\PublicController;
+use App\Controllers\PublicReportController;
 use App\Controllers\SeoController;
 use App\Controllers\WaitlistController;
+use App\Controllers\WebhookController;
 use App\Core\Router;
 use App\Middlewares\AuthMiddleware;
 use App\Middlewares\CsrfMiddleware;
@@ -32,6 +34,12 @@ return static function (Router $router): void {
     // SEO artifacts.
     $router->get('/robots.txt', [SeoController::class, 'robots']);
     $router->get('/sitemap.xml', [SeoController::class, 'sitemap']);
+
+    // Public commercial report (tokenized share link).
+    $router->get('/report/{token}', [PublicReportController::class, 'show']);
+
+    // Provider webhooks (public; secured by shared secret, no session/CSRF).
+    $router->post('/webhooks/whatsapp', [WebhookController::class, 'whatsapp']);
 
     // Waitlist (public capture).
     $router->get('/lista-de-espera', [WaitlistController::class, 'show']);

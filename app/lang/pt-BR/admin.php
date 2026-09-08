@@ -16,6 +16,7 @@ return [
         'leads'     => 'Oportunidades',
         'pipeline'    => 'Pipeline',
         'prospecting' => 'Prospecção',
+        'outreach'    => 'Comercial / Outreach',
         'plans'       => 'Planos',
         'users'     => 'Usuários',
         'roles'     => 'Perfis',

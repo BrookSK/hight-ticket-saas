@@ -213,6 +213,79 @@ e oportunidades; Super Admin vê tudo), permissões `prospecting.*`, proteção
 anti-SSRF em toda requisição externa, limite de campanhas ativas, limite de
 resultados/auditorias por campanha e rate limit — configuráveis pelo Super Admin.
 
+## Módulo Comercial / Outreach (Automação de Follow-up)
+
+Automatiza o trabalho operacional do vendedor (abordagem e follow-up), mantendo
+o humano no controle de quem contatar, como abordar, quando enviar e quando
+encerrar. **A plataforma não é uma ferramenta de spam.**
+
+### Fluxo
+
+```
+Preparar contato -> (aprovação humana) -> Caixa de saída -> Worker -> Provedor
+Resposta do lead -> para a sequência e sinaliza para atendimento humano
+```
+
+### Provedores (abstração)
+
+O sistema depende de interfaces, nunca de um fornecedor específico:
+
+- `WhatsAppProviderInterface` — adaptador `EvolutionWhatsAppProvider` (inativo até
+  o Super Admin configurar URL, API key e instância nas Configurações Gerais).
+- `EmailProviderInterface` — `SmtpEmailProvider` real, usando o SMTP já configurado.
+- `AIProviderInterface` — quando não há IA configurada, o sistema usa os templates
+  tradicionais (fallback); a IA nunca inventa dados e nunca envia sozinha.
+
+### Templates e variáveis
+
+Templates com `{{variaveis}}` (ex.: `{{first_name}}`, `{{company}}`, `{{report_link}}`).
+A renderização falha de forma explícita se o template usar uma variável desconhecida,
+evitando o envio de mensagens quebradas.
+
+### Anti-spam (obrigatório)
+
+Antes de qualquer envio, a política verifica, nesta ordem: opt-out/supressão,
+intervalo mínimo entre contatos (cooldown), limites por hora/dia (rate limit) e a
+janela de envio (horário comercial / fins de semana). Envios fora da janela ou
+acima do limite são reagendados — nunca descartados.
+
+### Aprovação humana
+
+Por padrão (`outreach_require_approval = 1`), toda mensagem entra como
+"aguardando aprovação". Nada é enviado sem confirmação. A IA jamais envia sozinha.
+
+### Relatórios comerciais compartilháveis
+
+Gere um diagnóstico a partir de uma oportunidade e compartilhe por um link
+`/report/{token}` com token impossível de adivinhar, validade, revogação e
+contagem de acessos. A página pública renderiza a partir de um snapshot salvo
+(não consulta tabelas internas) e pode ocultar o score interno.
+
+### Processamento assíncrono (worker)
+
+```bash
+php bin/outreach-worker.php          # drena a fila e sai (bom para cron)
+php bin/outreach-worker.php --loop    # fica processando
+php bin/outreach-worker.php --once    # processa um job e sai
+```
+
+Os jobs (`send_message`, `follow_up`) são idempotentes, com retry com backoff,
+dead-job após o máximo de tentativas e recuperação de jobs presos. O envio nunca
+ocorre dentro de uma requisição web.
+
+### Webhooks
+
+`POST /webhooks/whatsapp` recebe eventos de entrega/leitura do provedor. É público
+mas protegido por um segredo compartilhado (`outreach_webhook_secret`, comparado em
+tempo constante) e é idempotente via a restrição única `(provider, external_id)`.
+
+### Segurança e limites
+
+Isolamento por contexto de acesso, permissões `outreach.*` (incluindo
+`outreach.approve`, `outreach.manage_templates`, `outreach.manage_sequences`,
+`outreach.manage_providers`), opt-out respeitado em todos os canais, cooldown,
+rate limit e janela de envio — tudo configurável pelo Super Admin.
+
 ## Módulo Comercial (CRM)
 
 Transforma auditorias em oportunidades comerciais organizadas.

@@ -15,6 +15,10 @@ use App\Libraries\Translator;
 use App\Events\EventDispatcher;
 use App\Libraries\Http\HttpClient;
 use App\Libraries\Http\SsrfGuard;
+use App\Libraries\Outreach\OutreachProviders;
+use App\Libraries\Outreach\Providers\EvolutionWhatsAppProvider;
+use App\Libraries\Outreach\Providers\NullAiProvider;
+use App\Libraries\Outreach\Providers\SmtpEmailProvider;
 use App\Libraries\Prospecting\ProviderRegistry;
 use App\Repositories\ActivityLogRepository;
 use App\Repositories\ActivityRepository;
@@ -26,8 +30,19 @@ use App\Repositories\ContactRepository;
 use App\Repositories\DiscoveryResultRepository;
 use App\Repositories\ExclusionListRepository;
 use App\Repositories\LeadRepository;
+use App\Repositories\ConversationRepository;
+use App\Repositories\LeadTaskRepository;
 use App\Repositories\OpportunityRuleRepository;
+use App\Repositories\OutreachCampaignRepository;
+use App\Repositories\OutreachEnrollmentRepository;
+use App\Repositories\OutreachEventRepository;
+use App\Repositories\OutreachJobRepository;
+use App\Repositories\OutreachMessageRepository;
+use App\Repositories\OutreachSequenceRepository;
+use App\Repositories\OutreachTemplateRepository;
 use App\Repositories\PasswordResetRepository;
+use App\Repositories\ReportRepository;
+use App\Repositories\SuppressionRepository;
 use App\Repositories\ProspectingJobRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\RoleRepository;
@@ -48,6 +63,19 @@ use App\Services\ConfigService;
 use App\Services\EmailTemplateService;
 use App\Services\PdfService;
 use App\Services\MailService;
+use App\Services\Outreach\AIMessageService;
+use App\Services\Outreach\CommercialReportService;
+use App\Services\Outreach\ConversationService;
+use App\Services\Outreach\OutreachMetricsService;
+use App\Services\Outreach\OutreachService;
+use App\Services\Outreach\ReportLinkService;
+use App\Services\Outreach\SendPolicyService;
+use App\Services\Outreach\SendService;
+use App\Services\Outreach\SequenceAdminService;
+use App\Services\Outreach\SequenceService;
+use App\Services\Outreach\SuppressionService;
+use App\Services\Outreach\TemplateRenderer;
+use App\Services\Outreach\TemplateService;
 use App\Services\PlanService;
 use App\Services\Prospecting\CampaignService;
 use App\Services\Prospecting\DiscoveryService;
@@ -251,9 +279,81 @@ final class Kernel
             static fn (Container $c): OpportunityRuleRepository => new OpportunityRuleRepository($c->get('database'))
         );
 
+        // Outreach (Fase 5) repositories.
+        $c->singleton(
+            OutreachTemplateRepository::class,
+            static fn (Container $c): OutreachTemplateRepository => new OutreachTemplateRepository($c->get('database'))
+        );
+        $c->singleton(
+            OutreachSequenceRepository::class,
+            static fn (Container $c): OutreachSequenceRepository => new OutreachSequenceRepository($c->get('database'))
+        );
+        $c->singleton(
+            OutreachCampaignRepository::class,
+            static fn (Container $c): OutreachCampaignRepository => new OutreachCampaignRepository($c->get('database'))
+        );
+        $c->singleton(
+            OutreachMessageRepository::class,
+            static fn (Container $c): OutreachMessageRepository => new OutreachMessageRepository($c->get('database'))
+        );
+        $c->singleton(
+            OutreachEventRepository::class,
+            static fn (Container $c): OutreachEventRepository => new OutreachEventRepository($c->get('database'))
+        );
+        $c->singleton(
+            OutreachEnrollmentRepository::class,
+            static fn (Container $c): OutreachEnrollmentRepository => new OutreachEnrollmentRepository($c->get('database'))
+        );
+        $c->singleton(
+            SuppressionRepository::class,
+            static fn (Container $c): SuppressionRepository => new SuppressionRepository($c->get('database'))
+        );
+        $c->singleton(
+            ReportRepository::class,
+            static fn (Container $c): ReportRepository => new ReportRepository($c->get('database'))
+        );
+        $c->singleton(
+            ConversationRepository::class,
+            static fn (Container $c): ConversationRepository => new ConversationRepository($c->get('database'))
+        );
+        $c->singleton(
+            LeadTaskRepository::class,
+            static fn (Container $c): LeadTaskRepository => new LeadTaskRepository($c->get('database'))
+        );
+        $c->singleton(
+            OutreachJobRepository::class,
+            static fn (Container $c): OutreachJobRepository => new OutreachJobRepository($c->get('database'))
+        );
+
         // Discovery provider registry.
         $c->singleton('providerRegistry', static fn (): ProviderRegistry => new ProviderRegistry());
         $c->singleton(ProviderRegistry::class, static fn (Container $c): ProviderRegistry => $c->get('providerRegistry'));
+
+        // Outreach channel providers (Fase 5), built from database config so the
+        // system depends only on the interfaces, never on a specific vendor.
+        $c->singleton(OutreachProviders::class, static function (Container $c): OutreachProviders {
+            /** @var ConfigService $config */
+            $config = $c->get(ConfigService::class);
+
+            // WhatsApp — Evolution adapter, inactive until configured + enabled.
+            $whatsapp = new EvolutionWhatsAppProvider(
+                $c->get('httpClient'),
+                $config->get('outreach_whatsapp_url'),
+                $config->get('outreach_whatsapp_api_key'),
+                $config->get('outreach_whatsapp_instance'),
+                (string) ($config->get('outreach_whatsapp_status', '0') ?? '0') === '1'
+            );
+
+            // E-mail — SMTP is real; considered configured when host + from set.
+            $smtpReady = ((string) ($config->get('smtp_host') ?? '')) !== ''
+                && ((string) ($config->get('smtp_from_email') ?? '')) !== '';
+            $email = new SmtpEmailProvider($c->get(MailService::class), $smtpReady);
+
+            // AI — null fallback for now; real vendors plug in behind the interface.
+            $ai = new NullAiProvider();
+
+            return new OutreachProviders($whatsapp, $email, $ai);
+        });
 
         // SSRF guard (reusable by any outbound-request feature).
         $c->singleton('ssrfGuard', static fn (): SsrfGuard => new SsrfGuard());
@@ -334,6 +434,23 @@ final class Kernel
         $c->singleton(DiscoveryService::class, static fn (Container $c): DiscoveryService => new DiscoveryService($c));
         $c->singleton(ProspectingConversionService::class, static fn (Container $c): ProspectingConversionService => new ProspectingConversionService($c));
         $c->singleton(ExclusionService::class, static fn (Container $c): ExclusionService => new ExclusionService($c));
+
+        // Outreach (Fase 5) services — report/link/templates/AI.
+        $c->singleton(TemplateRenderer::class, static fn (Container $c): TemplateRenderer => new TemplateRenderer($c));
+        $c->singleton(AIMessageService::class, static fn (Container $c): AIMessageService => new AIMessageService($c));
+        $c->singleton(ReportLinkService::class, static fn (Container $c): ReportLinkService => new ReportLinkService($c));
+        $c->singleton(CommercialReportService::class, static fn (Container $c): CommercialReportService => new CommercialReportService($c));
+
+        // Outreach (Fase 5) services — preparation/send/sequences/suppression/conversations.
+        $c->singleton(SuppressionService::class, static fn (Container $c): SuppressionService => new SuppressionService($c));
+        $c->singleton(SendPolicyService::class, static fn (Container $c): SendPolicyService => new SendPolicyService($c));
+        $c->singleton(SendService::class, static fn (Container $c): SendService => new SendService($c));
+        $c->singleton(OutreachService::class, static fn (Container $c): OutreachService => new OutreachService($c));
+        $c->singleton(SequenceService::class, static fn (Container $c): SequenceService => new SequenceService($c));
+        $c->singleton(SequenceAdminService::class, static fn (Container $c): SequenceAdminService => new SequenceAdminService($c));
+        $c->singleton(ConversationService::class, static fn (Container $c): ConversationService => new ConversationService($c));
+        $c->singleton(OutreachMetricsService::class, static fn (Container $c): OutreachMetricsService => new OutreachMetricsService($c));
+        $c->singleton(TemplateService::class, static fn (Container $c): TemplateService => new TemplateService($c));
 
         $c->singleton(
             RateLimiter::class,

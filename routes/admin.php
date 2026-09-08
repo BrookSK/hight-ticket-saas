@@ -9,11 +9,17 @@ use App\Controllers\Admin\ContactController;
 use App\Controllers\Admin\CrmDashboardController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\CampaignController;
+use App\Controllers\Admin\ConversationController;
 use App\Controllers\Admin\LeadController;
 use App\Controllers\Admin\LogController;
 use App\Controllers\Admin\OpportunityReviewController;
+use App\Controllers\Admin\OutreachController;
+use App\Controllers\Admin\OutreachDashboardController;
+use App\Controllers\Admin\OutreachSequenceController;
+use App\Controllers\Admin\OutreachTemplateController;
 use App\Controllers\Admin\PipelineController;
 use App\Controllers\Admin\ProspectingDashboardController;
+use App\Controllers\Admin\ReportController;
 use App\Controllers\Admin\PlanController;
 use App\Controllers\Admin\RoleController;
 use App\Controllers\Admin\SettingsController;
@@ -121,6 +127,49 @@ return static function (Router $router): void {
         $router->post('/prospecting/review/{id}/convert', [OpportunityReviewController::class, 'convert'], [PermissionMiddleware::for('prospecting.convert'), CsrfMiddleware::class]);
         $router->post('/prospecting/review/{id}/discard', [OpportunityReviewController::class, 'discard'], [PermissionMiddleware::for('prospecting.review'), CsrfMiddleware::class]);
         $router->post('/prospecting/review/{id}/ignore', [OpportunityReviewController::class, 'ignore'], [PermissionMiddleware::for('prospecting.review'), CsrfMiddleware::class]);
+
+        // Outreach (Fase 5) — dashboard comercial.
+        $router->get('/outreach', [OutreachDashboardController::class, 'index'], [PermissionMiddleware::for('outreach.view')]);
+
+        // Outreach — templates.
+        $router->get('/outreach/templates', [OutreachTemplateController::class, 'index'], [PermissionMiddleware::for('outreach.manage_templates')]);
+        $router->get('/outreach/templates/create', [OutreachTemplateController::class, 'create'], [PermissionMiddleware::for('outreach.manage_templates')]);
+        $router->post('/outreach/templates', [OutreachTemplateController::class, 'store'], [PermissionMiddleware::for('outreach.manage_templates'), CsrfMiddleware::class]);
+        $router->get('/outreach/templates/{id}/edit', [OutreachTemplateController::class, 'edit'], [PermissionMiddleware::for('outreach.manage_templates')]);
+        $router->put('/outreach/templates/{id}', [OutreachTemplateController::class, 'update'], [PermissionMiddleware::for('outreach.manage_templates'), CsrfMiddleware::class]);
+        $router->post('/outreach/templates/{id}/delete', [OutreachTemplateController::class, 'delete'], [PermissionMiddleware::for('outreach.manage_templates'), CsrfMiddleware::class]);
+
+        // Outreach — sequences (follow-up).
+        $router->get('/outreach/sequences', [OutreachSequenceController::class, 'index'], [PermissionMiddleware::for('outreach.manage_sequences')]);
+        $router->get('/outreach/sequences/create', [OutreachSequenceController::class, 'create'], [PermissionMiddleware::for('outreach.manage_sequences')]);
+        $router->post('/outreach/sequences', [OutreachSequenceController::class, 'store'], [PermissionMiddleware::for('outreach.manage_sequences'), CsrfMiddleware::class]);
+        $router->get('/outreach/sequences/{id}/edit', [OutreachSequenceController::class, 'edit'], [PermissionMiddleware::for('outreach.manage_sequences')]);
+        $router->put('/outreach/sequences/{id}', [OutreachSequenceController::class, 'update'], [PermissionMiddleware::for('outreach.manage_sequences'), CsrfMiddleware::class]);
+        $router->post('/outreach/sequences/{id}/delete', [OutreachSequenceController::class, 'delete'], [PermissionMiddleware::for('outreach.manage_sequences'), CsrfMiddleware::class]);
+
+        // Outreach — conversations.
+        $router->get('/outreach/conversations', [ConversationController::class, 'index'], [PermissionMiddleware::for('outreach.view')]);
+        $router->get('/outreach/conversations/{id}', [ConversationController::class, 'show'], [PermissionMiddleware::for('outreach.view')]);
+        $router->post('/outreach/conversations/{id}/close', [ConversationController::class, 'close'], [PermissionMiddleware::for('outreach.update'), CsrfMiddleware::class]);
+
+        // Outreach — suppressions (opt-out).
+        $router->get('/outreach/suppressions', [OutreachController::class, 'suppressions'], [PermissionMiddleware::for('outreach.view')]);
+        $router->post('/outreach/suppressions', [OutreachController::class, 'addSuppression'], [PermissionMiddleware::for('outreach.update'), CsrfMiddleware::class]);
+        $router->post('/outreach/suppressions/{id}/delete', [OutreachController::class, 'removeSuppression'], [PermissionMiddleware::for('outreach.update'), CsrfMiddleware::class]);
+
+        // Outreach — reports (shareable).
+        $router->get('/outreach/reports', [ReportController::class, 'index'], [PermissionMiddleware::for('outreach.view')]);
+        $router->post('/outreach/reports', [ReportController::class, 'store'], [PermissionMiddleware::for('outreach.create'), CsrfMiddleware::class]);
+        $router->get('/outreach/reports/{id}', [ReportController::class, 'show'], [PermissionMiddleware::for('outreach.view')]);
+        $router->post('/outreach/reports/{id}/revoke', [ReportController::class, 'revoke'], [PermissionMiddleware::for('outreach.update'), CsrfMiddleware::class]);
+
+        // Outreach — outbox + prepare contact + approvals + enrollment.
+        $router->get('/outreach/outbox', [OutreachController::class, 'outbox'], [PermissionMiddleware::for('outreach.view')]);
+        $router->post('/outreach/messages', [OutreachController::class, 'store'], [PermissionMiddleware::for('outreach.create'), CsrfMiddleware::class]);
+        $router->post('/outreach/messages/{id}/approve', [OutreachController::class, 'approve'], [PermissionMiddleware::for('outreach.approve'), CsrfMiddleware::class]);
+        $router->post('/outreach/messages/{id}/cancel', [OutreachController::class, 'cancel'], [PermissionMiddleware::for('outreach.cancel'), CsrfMiddleware::class]);
+        $router->post('/outreach/enroll', [OutreachController::class, 'enroll'], [PermissionMiddleware::for('outreach.schedule'), CsrfMiddleware::class]);
+        $router->get('/outreach/prepare/{lead}', [OutreachController::class, 'prepare'], [PermissionMiddleware::for('outreach.create')]);
 
         // Plans.
         $router->get('/plans', [PlanController::class, 'index'], [PermissionMiddleware::for('plans.view')]);

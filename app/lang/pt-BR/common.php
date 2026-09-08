@@ -25,7 +25,13 @@ return [
         'export'  => 'Exportar',
         'restore' => 'Restaurar',
         'help'    => 'Ajuda',
+        'actions' => 'Ações',
+        'back_home' => 'Voltar ao início',
     ],
+
+    'yes'    => 'Sim',
+    'no'     => 'Não',
+    'copied' => 'Copiado para a área de transferência.',
 
     'status' => [
         'active'   => 'Ativo',

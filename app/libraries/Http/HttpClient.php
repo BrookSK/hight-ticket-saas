@@ -41,6 +41,73 @@ final class HttpClient
         return $this->request('HEAD', $url);
     }
 
+    /**
+     * Perform a POST with a JSON body and optional extra headers.
+     *
+     * SSRF-validated and IP-pinned like other requests. Used by integrations
+     * (e.g. WhatsApp providers). Requires cURL; returns an error response if
+     * cURL is unavailable.
+     *
+     * @param array<string, mixed>  $json
+     * @param array<string, string> $headers Extra request headers.
+     */
+    public function postJson(string $url, array $json, array $headers = []): HttpResponse
+    {
+        try {
+            $v = $this->guard->validate($url);
+        } catch (SsrfException $e) {
+            return $this->errorResponse($url, 'blocked:' . $e->getMessage());
+        }
+
+        if (!function_exists('curl_init')) {
+            return $this->errorResponse($url, 'curl_unavailable');
+        }
+
+        $start = microtime(true);
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_RESOLVE, [$v['host'] . ':' . $v['port'] . ':' . $v['ips'][0]]);
+
+        $requestHeaders = ['Content-Type: application/json', 'Accept: application/json'];
+        foreach ($headers as $name => $value) {
+            $requestHeaders[] = $name . ': ' . $value;
+        }
+
+        curl_setopt_array($ch, [
+            CURLOPT_URL            => $v['url'],
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => json_encode($json, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            CURLOPT_HTTPHEADER     => $requestHeaders,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_CONNECTTIMEOUT => $this->connectTimeout,
+            CURLOPT_TIMEOUT        => $this->totalTimeout,
+            CURLOPT_USERAGENT      => $this->userAgent,
+            CURLOPT_SSL_VERIFYPEER => true,
+            CURLOPT_SSL_VERIFYHOST => 2,
+            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
+        ]);
+
+        $body = (string) curl_exec($ch);
+        $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+        $errno = curl_errno($ch);
+        curl_close($ch);
+        $elapsed = (microtime(true) - $start) * 1000;
+
+        if ($errno !== 0) {
+            return $this->errorResponse($v['url'], 'curl_error:' . $errno, $elapsed);
+        }
+
+        return new HttpResponse(
+            finalUrl: $v['url'],
+            statusCode: $status,
+            headers: [],
+            body: strlen($body) > $this->maxBytes ? substr($body, 0, $this->maxBytes) : $body,
+            responseTimeMs: round($elapsed, 2),
+            redirectCount: 0,
+            truncated: false
+        );
+    }
+
     private function request(string $method, string $url, int $redirectCount = 0): HttpResponse
     {
         try {

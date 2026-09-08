@@ -259,3 +259,68 @@ host (`AuditRepository::findRecentByHost`), controlando custo.
 Toda leitura de campanhas/oportunidades passa por `AccessContext`
 (findForContext/paginate owner-scoped). O worker roda em CLI e usa o owner
 gravado na campanha (sem sessão de autenticação).
+
+## Módulo Comercial / Outreach (Fase 5)
+
+Automatiza a abordagem e o follow-up mantendo o humano no controle. Reutiliza
+`AccessContext`, o CRM (Fase 3), a auditoria (Fase 2) e o padrão de fila em banco.
+Princípio inviolável: **não é ferramenta de spam**.
+
+### Providers (abstração — sem acoplamento a fornecedor)
+
+`app/libraries/Outreach/` define `WhatsAppProviderInterface`,
+`EmailProviderInterface` e `AIProviderInterface`. Implementações em `Providers/`:
+`EvolutionWhatsAppProvider` (adaptador via `HttpClient::postJson`, SSRF-safe,
+inativo até configurar URL/API key/instância), `SmtpEmailProvider` (real, sobre o
+`MailService`) e `NullAiProvider` (fallback: sem IA, usa templates). O
+`OutreachProviders` registry é montado no Kernel a partir do `ConfigService`, de
+modo que o resto do sistema depende apenas das interfaces.
+
+### Templates e variáveis
+
+`TemplateRenderer` faz o parsing de `{{variavel}}` e **lança exceção** quando o
+template referencia uma variável não fornecida (`UnknownTemplateVariableException`),
+evitando mensagens quebradas. `TemplateService` valida as variáveis contra o
+conjunto disponível antes de salvar. As variáveis são preenchidas apenas com dados
+reais (lead/empresa/contato) — nunca inventadas.
+
+### Política antispam (`SendPolicyService`)
+
+Ponto único de decisão antes de enviar: opt-out/supressão (terminal) → cooldown por
+destinatário → rate limit por hora/dia → janela de envio (fuso, horário, fins de
+semana). Retorna motivos legíveis. `SendService` reaplica a política como última
+linha de defesa e é idempotente (só processa estados enviáveis; já enviado é no-op).
+
+### Aprovação humana e fila
+
+`OutreachService::prepareContact` cria a mensagem na caixa de saída
+(`outreach_messages`) como `pending_approval` por padrão. A aprovação enfileira um
+job `send_message` em `outreach_jobs`. `bin/outreach-worker.php` processa a fila
+(claim atômico, retry com backoff, dead-job, `requeueStuck`) e também avança as
+sequências devidas. Envios adiados pela política são reagendados, nunca descartados.
+
+### Sequências de follow-up
+
+`SequenceService` inscreve o lead (`outreach_enrollments`) e avança passo a passo.
+Para automaticamente nas condições humanas: resposta, reunião, negócio ganho ou
+opt-out (`ConversationService` chama `stopForLead`).
+
+### Conversas e opt-out
+
+Mensagens inbound/outbound ficam em `outreach_messages` (campo `direction`);
+`conversation_threads` guarda o estado da thread. `ConversationService` classifica
+a intenção da resposta e sinaliza `needs_human`. Opt-out é registrado em
+`outreach_suppressions` e respeitado em todos os canais.
+
+### Relatório público
+
+`ReportLinkService` gera token impossível de adivinhar, aplica validade/revogação e
+registra acessos. `CommercialReportService` monta um snapshot (a partir da auditoria)
+persistido em `reports.snapshot`; a página pública `/report/{token}` renderiza só do
+snapshot, sem consultar tabelas internas, e pode ocultar o score interno.
+
+### Webhooks
+
+`WebhookController` (público, sem sessão) valida um segredo compartilhado em tempo
+constante e é idempotente via `outreach_events` (UNIQUE `provider`+`external_id`).
+Eventos de entrega/leitura atualizam a mensagem pelo `provider_msg_id`.
