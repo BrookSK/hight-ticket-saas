@@ -46,6 +46,12 @@ $positives = is_array($summary['positives'] ?? null) ? $summary['positives'] : [
                 <i class="bi bi-download me-1"></i>PDF
             </a>
         <?php endif; ?>
+        <?php if ($isDone && can('leads.create')): ?>
+            <form method="post" action="/app/audits/<?= $id ?>/to-lead" class="m-0">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-brand"><i class="bi bi-briefcase me-1"></i><?= e(__('audit.to_lead')) ?></button>
+            </form>
+        <?php endif; ?>
     </div>
 </div>
 

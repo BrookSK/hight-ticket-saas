@@ -16,8 +16,12 @@ use App\Events\EventDispatcher;
 use App\Libraries\Http\HttpClient;
 use App\Libraries\Http\SsrfGuard;
 use App\Repositories\ActivityLogRepository;
+use App\Repositories\ActivityRepository;
 use App\Repositories\AuditDataRepository;
 use App\Repositories\AuditRepository;
+use App\Repositories\CompanyRepository;
+use App\Repositories\ContactRepository;
+use App\Repositories\LeadRepository;
 use App\Repositories\PasswordResetRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\RoleRepository;
@@ -27,8 +31,13 @@ use App\Repositories\WaitlistActivityRepository;
 use App\Repositories\WaitlistLeadRepository;
 use App\Services\AccessContext;
 use App\Services\ActivityLogService;
+use App\Services\ActivityService;
 use App\Services\AuditService;
 use App\Services\AuthService;
+use App\Services\CompanyService;
+use App\Services\ContactService;
+use App\Services\CrmDashboardService;
+use App\Services\LeadService;
 use App\Services\ConfigService;
 use App\Services\EmailTemplateService;
 use App\Services\PdfService;
@@ -188,6 +197,26 @@ final class Kernel
             static fn (Container $c): AuditDataRepository => new AuditDataRepository($c->get('database'))
         );
 
+        $c->singleton(
+            CompanyRepository::class,
+            static fn (Container $c): CompanyRepository => new CompanyRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            ContactRepository::class,
+            static fn (Container $c): ContactRepository => new ContactRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            LeadRepository::class,
+            static fn (Container $c): LeadRepository => new LeadRepository($c->get('database'))
+        );
+
+        $c->singleton(
+            ActivityRepository::class,
+            static fn (Container $c): ActivityRepository => new ActivityRepository($c->get('database'))
+        );
+
         // SSRF guard (reusable by any outbound-request feature).
         $c->singleton('ssrfGuard', static fn (): SsrfGuard => new SsrfGuard());
 
@@ -233,6 +262,31 @@ final class Kernel
         $c->singleton(
             PdfService::class,
             static fn (Container $c): PdfService => new PdfService($c)
+        );
+
+        $c->singleton(
+            CompanyService::class,
+            static fn (Container $c): CompanyService => new CompanyService($c)
+        );
+
+        $c->singleton(
+            ContactService::class,
+            static fn (Container $c): ContactService => new ContactService($c)
+        );
+
+        $c->singleton(
+            LeadService::class,
+            static fn (Container $c): LeadService => new LeadService($c)
+        );
+
+        $c->singleton(
+            ActivityService::class,
+            static fn (Container $c): ActivityService => new ActivityService($c)
+        );
+
+        $c->singleton(
+            CrmDashboardService::class,
+            static fn (Container $c): CrmDashboardService => new CrmDashboardService($c)
         );
 
         $c->singleton(

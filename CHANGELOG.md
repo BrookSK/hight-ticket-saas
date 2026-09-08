@@ -3,6 +3,16 @@
 Histórico de novidades da plataforma, escrito para o usuário final.
 O projeto segue versionamento semântico (MAJOR.MINOR.PATCH).
 
+## [0.4.0] - 2026-09-07
+
+- Agora você pode organizar empresas, contatos e oportunidades comerciais em um único lugar.
+- Novo pipeline visual (Kanban) para acompanhar seus negócios de ponta a ponta.
+- Auditorias podem ser associadas às oportunidades e transformadas em oportunidade com um clique.
+- O score do site aparece direto na oportunidade, ajudando a priorizar quem contatar.
+- Registro de atividades, tarefas e histórico completo de cada oportunidade.
+- Filtros e busca por status, temperatura, score do site e muito mais.
+- Painel comercial com indicadores de negócios, valores e tarefas pendentes.
+
 ## [0.3.0] - 2026-09-07
 
 - Novo módulo de Auditoria de Sites: informe uma URL e receba uma análise completa.

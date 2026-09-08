@@ -203,6 +203,36 @@ final class AuditController extends Controller
     }
 
     /**
+     * Transform an audit into a commercial lead (creates/links company + lead).
+     *
+     * @param array<string, string> $params
+     */
+    public function transformToLead(Request $request, array $params = []): void
+    {
+        $audit = $this->authorizeAudit((int) ($params['id'] ?? 0));
+        if ($audit === null) {
+            return;
+        }
+
+        /** @var \App\Services\LeadService $leads */
+        $leads = $this->container->get(\App\Services\LeadService::class);
+        $result = $leads->createFromAudit($audit);
+
+        if (!($result['ok'] ?? false)) {
+            $this->session()->flash('status', __('audit.transform_failed'));
+            $this->redirect('/app/audits/' . (int) $audit['id']);
+
+            return;
+        }
+
+        $this->log()->record('lead_created_from_audit', $this->context()->userId(), [
+            'object_type' => 'lead', 'object_id' => $result['id'] ?? null,
+        ]);
+        $this->session()->flash('status', __('audit.transform_success'));
+        $this->redirect('/app/leads/' . ($result['id'] ?? ''));
+    }
+
+    /**
      * @param array<string, string> $params
      */
     public function delete(Request $request, array $params = []): void

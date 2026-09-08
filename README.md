@@ -136,9 +136,47 @@ mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0006_20260907_seed_phase
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0007_20260907_create_audits.sql
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0008_20260907_create_audit_details.sql
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0009_20260907_seed_audit_permissions_settings.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0010_20260907_create_companies_contacts.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0011_20260907_create_leads.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0012_20260907_create_activities_tags.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0013_20260907_create_services_sources.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0014_20260907_seed_crm_permissions.sql
 ```
 
 Nunca edite uma migration já aplicada: para mudar o banco, crie uma nova.
+
+## Módulo Comercial (CRM)
+
+Transforma auditorias em oportunidades comerciais organizadas.
+
+### Conceito
+
+```
+Empresa -> Contato -> Oportunidade (Lead) -> Auditoria -> Atividades -> Ganho/Perdido
+```
+
+### Recursos
+
+- **Empresas** (`/app/companies`): cadastro com deduplicação por domínio/CNPJ/e-mail,
+  contatos (com contato principal), status e arquivamento.
+- **Oportunidades** (`/app/leads`): status de pipeline, temperatura, qualificação,
+  valor estimado, campos de qualificação (necessidade/problema/orçamento/urgência),
+  desfecho de ganho/perda com motivo, e histórico completo.
+- **Pipeline** (`/app/pipeline`): Kanban com arrastar-e-soltar no desktop e um
+  seletor de status como alternativa no mobile.
+- **Atividades/tarefas**: timeline automática (status alterado, responsável, etc.)
+  e registros manuais (notas, ligações, reuniões, tarefas).
+- **Painel comercial** (`/app/crm`): indicadores de empresas, oportunidades por
+  etapa, valores estimado/ganho e tarefas pendentes.
+- **Transformar auditoria em oportunidade**: na tela da auditoria, cria/associa a
+  empresa (pelo domínio) e vincula a auditoria à nova oportunidade.
+
+### Isolamento e permissões
+
+Todo o CRM respeita o contexto de acesso (`AccessContext`): cada usuário vê apenas
+os próprios registros; o Super Admin vê tudo. Permissões granulares:
+`companies.*`, `contacts.*`, `leads.*` (inclui `leads.assign`), `activities.*` e
+`pipeline.*`. As verificações são feitas no backend (nunca apenas na interface).
 
 ## Módulo de Auditoria (Scanner)
 

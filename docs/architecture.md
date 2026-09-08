@@ -168,3 +168,41 @@ PDF não exige reescrever o relatório.
 Os dados ficam separados em brutos (páginas), detalhados (issues, métricas,
 tecnologias, contatos, links) e processados (`audit_results`, chave `summary`),
 permitindo reaproveitamento futuro (CRM, leads, IA, comparação) sem recrawl.
+
+## Módulo Comercial / CRM (Fase 3)
+
+Base comercial construída sobre o mesmo contexto de acesso e ACL das fases
+anteriores. Transforma auditorias técnicas em oportunidades gerenciáveis.
+
+### Entidades
+
+- `companies` (empresas) e `contacts` (contatos, com contato principal).
+- `leads` (oportunidades) com pipeline, temperatura, qualificação e desfecho.
+- `lead_audits` (N:N lead ↔ auditoria, sem duplicar dados) e
+  `lead_status_history` (histórico de etapas).
+- `activities` (notas, tarefas e eventos de timeline automáticos), `tags` +
+  `taggables`, `services` e `lead_sources` (catálogos configuráveis).
+
+### Camadas
+
+- Repositories owner-scoped: `CompanyRepository`, `ContactRepository`,
+  `LeadRepository` (junta o score da auditoria mais recente por subconsulta),
+  `ActivityRepository`.
+- Services: `CompanyService` (normalização de domínio + deduplicação),
+  `ContactService`, `LeadService` (status + histórico + timeline, ganho/perda,
+  `createFromAudit`), `ActivityService` (timeline automática), `CrmDashboardService`.
+- Controllers em `App\Controllers\Admin` com rotas em `routes/admin.php`,
+  protegidas por `PermissionMiddleware` + `CsrfMiddleware`.
+
+### Isolamento (obrigatório)
+
+Toda consulta passa por `AccessContext` (owner = usuário nesta fase; preparado
+para tenant). `findForContext`/`listForContext` impedem que um usuário acesse
+registros de outro contexto, mesmo alterando IDs na URL. Super Admin vê tudo.
+
+### Vínculo com a auditoria (Fase 2)
+
+A auditoria pode ser transformada em oportunidade: a empresa é encontrada ou
+criada pelo domínio normalizado, a oportunidade é criada e a auditoria é
+vinculada (`lead_audits`). O score mais recente aparece na oportunidade com link
+para o relatório — sem recrawl e sem duplicar dados.
