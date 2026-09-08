@@ -3,6 +3,16 @@
 Histórico de novidades da plataforma, escrito para o usuário final.
 O projeto segue versionamento semântico (MAJOR.MINOR.PATCH).
 
+## [0.5.0] - 2026-09-07
+
+- Agora você pode criar campanhas para encontrar novas oportunidades comerciais.
+- O sistema descobre empresas, busca informações públicas e audita os sites automaticamente.
+- Novo score de oportunidade que identifica os melhores potenciais clientes, com os motivos explicados.
+- Empresas sem site são identificadas como oportunidade de criação de site.
+- Tela de revisão para aprovar, descartar ou converter oportunidades em leads (individual ou em lote).
+- Lista de exclusão para não prospectar empresas indesejadas.
+- Processamento em segundo plano com acompanhamento de progresso.
+
 ## [0.4.0] - 2026-09-07
 
 - Agora você pode organizar empresas, contatos e oportunidades comerciais em um único lugar.

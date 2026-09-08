@@ -141,9 +141,77 @@ mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0011_20260907_create_lea
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0012_20260907_create_activities_tags.sql
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0013_20260907_create_services_sources.sql
 mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0014_20260907_seed_crm_permissions.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0015_20260907_create_prospecting_campaigns.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0016_20260907_create_prospecting_jobs_exclusion.sql
+mysql -u USUARIO -p NOME_DO_BANCO < database/migrations/0017_20260907_seed_prospecting_permissions_settings.sql
 ```
 
 Nunca edite uma migration já aplicada: para mudar o banco, crie uma nova.
+
+## Módulo de Prospecção (Máquina de Oportunidades)
+
+Encontra potenciais clientes, audita seus sites e prioriza os melhores.
+
+### Fluxo
+
+```
+Campanha -> Descoberta -> Enriquecimento -> Auditoria (Fase 2) ->
+Opportunity Score -> Revisão humana -> Conversão em Lead
+```
+
+### Providers de descoberta
+
+A descoberta usa uma abstração de providers (`DiscoveryProviderInterface`).
+Nesta fase vem habilitado o provider **Lista importada** (`imported_list`): o
+usuário cola a lista de empresas (uma por linha: `Nome; site; telefone; cidade`)
+e o sistema roda todo o pipeline — sem depender de credenciais externas e sem
+scraping. Novas fontes (APIs de busca, diretórios) podem ser registradas no
+`ProviderRegistry` e permanecem inativas até serem configuradas nas
+Configurações Gerais (nunca `.env`).
+
+### Enriquecimento e auditoria
+
+O enriquecimento busca o site (via cliente HTTP com proteção anti-SSRF) e extrai
+sinais públicos (WhatsApp, e-mail, redes sociais) e o estado do site. Quando há
+site e a auditoria automática está ativa, o motor da Fase 2 é reutilizado
+(auditorias recentes do mesmo host são reaproveitadas para controlar custo).
+
+### Opportunity Score (≠ Site Score)
+
+O **Site Score** mede a qualidade técnica do site (Fase 2). O **Opportunity
+Score** mede o potencial comercial da empresa: um site ruim ou ausente costuma
+ser uma oportunidade ALTA. O score é calculado por regras com pesos
+configuráveis (tabela `opportunity_rules`) e cada fator traz evidência — nada é
+inventado. O serviço recomendado é derivado das regras acionadas.
+
+### Processamento assíncrono (worker)
+
+O processamento roda em uma fila no banco (sem exigir Redis). Execute:
+
+```bash
+php bin/prospecting-worker.php          # drena a fila e sai (bom para cron)
+php bin/prospecting-worker.php --loop    # fica processando
+```
+
+Os jobs (discovery → enrichment → audit → scoring) são idempotentes, com retry
+com backoff, dead-job após o máximo de tentativas e recuperação de jobs presos.
+Para os sites, o worker de auditoria (`php bin/audit-worker.php`) também precisa
+estar rodando. Discovery nunca roda dentro de uma requisição web.
+
+### Revisão e conversão
+
+A tela de revisão mostra o Opportunity Score explicado, o Site Score e os dados
+coletados. O usuário aprova/converte (individual ou em lote), descarta ou ignora
+(adiciona à lista de exclusão). A conversão cria/associa empresa e contato, cria
+o lead (com o serviço recomendado) e vincula a auditoria — respeitando a
+deduplicação.
+
+### Segurança e limites
+
+Isolamento por contexto de acesso (cada usuário vê apenas as próprias campanhas
+e oportunidades; Super Admin vê tudo), permissões `prospecting.*`, proteção
+anti-SSRF em toda requisição externa, limite de campanhas ativas, limite de
+resultados/auditorias por campanha e rate limit — configuráveis pelo Super Admin.
 
 ## Módulo Comercial (CRM)
 

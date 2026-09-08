@@ -214,6 +214,28 @@ final class AuditRepository extends Repository
     }
 
     /**
+     * Find a recent completed audit for a host within the owner context, for
+     * reuse (cost control). Returns null if none within the cache window.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findRecentByHost(string $host, string $ownerType, int $ownerId, int $withinHours): ?array
+    {
+        if ($host === '') {
+            return null;
+        }
+
+        return $this->db->fetch(
+            'SELECT `id`, `score_overall` FROM `audits`
+             WHERE `host` = :host AND `owner_type` = :ot AND `owner_id` = :oid
+               AND `status` IN (\'completed\', \'partial\') AND `deleted_at` IS NULL
+               AND `finished_at` >= (NOW() - INTERVAL :hrs HOUR)
+             ORDER BY `finished_at` DESC LIMIT 1',
+            ['host' => $host, 'ot' => $ownerType, 'oid' => $ownerId, 'hrs' => $withinHours]
+        );
+    }
+
+    /**
      * @return array{0:string,1:array<string,mixed>}
      */
     private function ownerWhere(string $ownerType, ?int $ownerId, bool $canSeeAll): array

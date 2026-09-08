@@ -8,9 +8,12 @@ use App\Controllers\Admin\CompanyController;
 use App\Controllers\Admin\ContactController;
 use App\Controllers\Admin\CrmDashboardController;
 use App\Controllers\Admin\DashboardController;
+use App\Controllers\Admin\CampaignController;
 use App\Controllers\Admin\LeadController;
 use App\Controllers\Admin\LogController;
+use App\Controllers\Admin\OpportunityReviewController;
 use App\Controllers\Admin\PipelineController;
+use App\Controllers\Admin\ProspectingDashboardController;
 use App\Controllers\Admin\PlanController;
 use App\Controllers\Admin\RoleController;
 use App\Controllers\Admin\SettingsController;
@@ -93,6 +96,31 @@ return static function (Router $router): void {
         $router->post('/activities', [ActivityController::class, 'store'], [PermissionMiddleware::for('activities.create'), CsrfMiddleware::class]);
         $router->post('/activities/{id}/complete', [ActivityController::class, 'complete'], [PermissionMiddleware::for('activities.update'), CsrfMiddleware::class]);
         $router->post('/activities/{id}/delete', [ActivityController::class, 'delete'], [PermissionMiddleware::for('activities.delete'), CsrfMiddleware::class]);
+
+        // Prospecção (Fase 4).
+        $router->get('/prospecting', [ProspectingDashboardController::class, 'index'], [PermissionMiddleware::for('prospecting.view')]);
+        $router->get('/prospecting/exclusions', [ProspectingDashboardController::class, 'exclusions'], [PermissionMiddleware::for('prospecting.view')]);
+        $router->post('/prospecting/exclusions', [ProspectingDashboardController::class, 'addExclusion'], [PermissionMiddleware::for('prospecting.update'), CsrfMiddleware::class]);
+        $router->post('/prospecting/exclusions/{id}/delete', [ProspectingDashboardController::class, 'removeExclusion'], [PermissionMiddleware::for('prospecting.update'), CsrfMiddleware::class]);
+
+        // Prospecção — campanhas.
+        $router->get('/prospecting/campaigns', [CampaignController::class, 'index'], [PermissionMiddleware::for('prospecting.view')]);
+        $router->get('/prospecting/campaigns/create', [CampaignController::class, 'create'], [PermissionMiddleware::for('prospecting.create')]);
+        $router->post('/prospecting/campaigns', [CampaignController::class, 'store'], [PermissionMiddleware::for('prospecting.create'), CsrfMiddleware::class]);
+        $router->get('/prospecting/campaigns/{id}', [CampaignController::class, 'show'], [PermissionMiddleware::for('prospecting.view')]);
+        $router->get('/prospecting/campaigns/{id}/progress', [CampaignController::class, 'progress'], [PermissionMiddleware::for('prospecting.view')]);
+        $router->post('/prospecting/campaigns/{id}/run', [CampaignController::class, 'run'], [PermissionMiddleware::for('prospecting.run'), CsrfMiddleware::class]);
+        $router->post('/prospecting/campaigns/{id}/pause', [CampaignController::class, 'pause'], [PermissionMiddleware::for('prospecting.pause'), CsrfMiddleware::class]);
+        $router->post('/prospecting/campaigns/{id}/cancel', [CampaignController::class, 'cancel'], [PermissionMiddleware::for('prospecting.cancel'), CsrfMiddleware::class]);
+        $router->post('/prospecting/campaigns/{id}/delete', [CampaignController::class, 'delete'], [PermissionMiddleware::for('prospecting.delete'), CsrfMiddleware::class]);
+
+        // Prospecção — revisão de oportunidades.
+        $router->get('/prospecting/review', [OpportunityReviewController::class, 'index'], [PermissionMiddleware::for('prospecting.review')]);
+        $router->post('/prospecting/review/convert-batch', [OpportunityReviewController::class, 'convertBatch'], [PermissionMiddleware::for('prospecting.convert'), CsrfMiddleware::class]);
+        $router->get('/prospecting/review/{id}', [OpportunityReviewController::class, 'show'], [PermissionMiddleware::for('prospecting.review')]);
+        $router->post('/prospecting/review/{id}/convert', [OpportunityReviewController::class, 'convert'], [PermissionMiddleware::for('prospecting.convert'), CsrfMiddleware::class]);
+        $router->post('/prospecting/review/{id}/discard', [OpportunityReviewController::class, 'discard'], [PermissionMiddleware::for('prospecting.review'), CsrfMiddleware::class]);
+        $router->post('/prospecting/review/{id}/ignore', [OpportunityReviewController::class, 'ignore'], [PermissionMiddleware::for('prospecting.review'), CsrfMiddleware::class]);
 
         // Plans.
         $router->get('/plans', [PlanController::class, 'index'], [PermissionMiddleware::for('plans.view')]);

@@ -206,3 +206,56 @@ A auditoria pode ser transformada em oportunidade: a empresa é encontrada ou
 criada pelo domínio normalizado, a oportunidade é criada e a auditoria é
 vinculada (`lead_audits`). O score mais recente aparece na oportunidade com link
 para o relatório — sem recrawl e sem duplicar dados.
+
+## Módulo de Prospecção / Máquina de Oportunidades (Fase 4)
+
+Gera oportunidades comerciais a partir de campanhas, reutilizando o motor de
+auditoria (Fase 2) e o CRM (Fase 3).
+
+### Pipeline (modular, obrigatório separado)
+
+```
+Discovery  -> Normalization/Enrichment -> Deduplication -> Audit (Fase 2)
+           -> Opportunity Scoring -> Qualification -> (revisão humana) -> Conversion
+```
+
+Cada etapa é um job na fila (`prospecting_jobs`), processado por
+`bin/prospecting-worker.php`. `DiscoveryService` expõe um método por tipo de
+job (runDiscovery/runEnrichment/runAudit/runScoring); os serviços de domínio
+(`CampaignService`, `EnrichmentService`, `ProspectingScoringService`,
+`ProspectingConversionService`, `ExclusionService`) são independentes.
+
+### Providers
+
+`App\Libraries\Prospecting\DiscoveryProviderInterface` abstrai as fontes.
+`ProviderRegistry` registra os providers; `ImportedListProvider` é a fonte real
+habilitada (lista fornecida pelo usuário, sem credenciais/scraping). Fontes
+externas podem ser adicionadas sem alterar o motor e ficam inativas até serem
+configuradas.
+
+### Opportunity Score
+
+`OpportunityScoringEngine` é puro/determinístico e recebe regras configuráveis
+(`opportunity_rules`, com override por owner) + sinais coletados. É distinto do
+Site Score: um site ausente/ruim → oportunidade alta. Cada fator carrega
+evidência; nada é inventado. A IA pode, no futuro, interpretar esses dados — mas
+nunca criar fatos.
+
+### Fila em banco, idempotência e recuperação
+
+`ProspectingJobRepository` faz claim atômico, retry com backoff
+(`available_at`), dead-job após `max_attempts` e `requeueStuck` (heartbeat).
+Discovery é idempotente via `dedupe_hash` por campanha. Erro de um resultado não
+derruba a campanha.
+
+### Reuso do motor de auditoria
+
+Não há duplicação do scanner: a etapa de auditoria cria uma auditoria `queued`
+(processada pelo audit worker) ou reaproveita uma auditoria recente do mesmo
+host (`AuditRepository::findRecentByHost`), controlando custo.
+
+### Isolamento
+
+Toda leitura de campanhas/oportunidades passa por `AccessContext`
+(findForContext/paginate owner-scoped). O worker roda em CLI e usa o owner
+gravado na campanha (sem sessão de autenticação).

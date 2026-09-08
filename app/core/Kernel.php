@@ -15,14 +15,20 @@ use App\Libraries\Translator;
 use App\Events\EventDispatcher;
 use App\Libraries\Http\HttpClient;
 use App\Libraries\Http\SsrfGuard;
+use App\Libraries\Prospecting\ProviderRegistry;
 use App\Repositories\ActivityLogRepository;
 use App\Repositories\ActivityRepository;
 use App\Repositories\AuditDataRepository;
 use App\Repositories\AuditRepository;
+use App\Repositories\CampaignRepository;
 use App\Repositories\CompanyRepository;
 use App\Repositories\ContactRepository;
+use App\Repositories\DiscoveryResultRepository;
+use App\Repositories\ExclusionListRepository;
 use App\Repositories\LeadRepository;
+use App\Repositories\OpportunityRuleRepository;
 use App\Repositories\PasswordResetRepository;
+use App\Repositories\ProspectingJobRepository;
 use App\Repositories\PlanRepository;
 use App\Repositories\RoleRepository;
 use App\Repositories\SettingRepository;
@@ -43,6 +49,12 @@ use App\Services\EmailTemplateService;
 use App\Services\PdfService;
 use App\Services\MailService;
 use App\Services\PlanService;
+use App\Services\Prospecting\CampaignService;
+use App\Services\Prospecting\DiscoveryService;
+use App\Services\Prospecting\EnrichmentService;
+use App\Services\Prospecting\ExclusionService;
+use App\Services\Prospecting\ProspectingConversionService;
+use App\Services\Prospecting\ProspectingScoringService;
 use App\Services\RateLimiter;
 use App\Services\UserService;
 use App\Services\WaitlistService;
@@ -217,6 +229,32 @@ final class Kernel
             static fn (Container $c): ActivityRepository => new ActivityRepository($c->get('database'))
         );
 
+        // Prospecting (Fase 4) repositories.
+        $c->singleton(
+            CampaignRepository::class,
+            static fn (Container $c): CampaignRepository => new CampaignRepository($c->get('database'))
+        );
+        $c->singleton(
+            DiscoveryResultRepository::class,
+            static fn (Container $c): DiscoveryResultRepository => new DiscoveryResultRepository($c->get('database'))
+        );
+        $c->singleton(
+            ProspectingJobRepository::class,
+            static fn (Container $c): ProspectingJobRepository => new ProspectingJobRepository($c->get('database'))
+        );
+        $c->singleton(
+            ExclusionListRepository::class,
+            static fn (Container $c): ExclusionListRepository => new ExclusionListRepository($c->get('database'))
+        );
+        $c->singleton(
+            OpportunityRuleRepository::class,
+            static fn (Container $c): OpportunityRuleRepository => new OpportunityRuleRepository($c->get('database'))
+        );
+
+        // Discovery provider registry.
+        $c->singleton('providerRegistry', static fn (): ProviderRegistry => new ProviderRegistry());
+        $c->singleton(ProviderRegistry::class, static fn (Container $c): ProviderRegistry => $c->get('providerRegistry'));
+
         // SSRF guard (reusable by any outbound-request feature).
         $c->singleton('ssrfGuard', static fn (): SsrfGuard => new SsrfGuard());
 
@@ -288,6 +326,14 @@ final class Kernel
             CrmDashboardService::class,
             static fn (Container $c): CrmDashboardService => new CrmDashboardService($c)
         );
+
+        // Prospecting (Fase 4) services.
+        $c->singleton(EnrichmentService::class, static fn (Container $c): EnrichmentService => new EnrichmentService($c));
+        $c->singleton(ProspectingScoringService::class, static fn (Container $c): ProspectingScoringService => new ProspectingScoringService($c));
+        $c->singleton(CampaignService::class, static fn (Container $c): CampaignService => new CampaignService($c));
+        $c->singleton(DiscoveryService::class, static fn (Container $c): DiscoveryService => new DiscoveryService($c));
+        $c->singleton(ProspectingConversionService::class, static fn (Container $c): ProspectingConversionService => new ProspectingConversionService($c));
+        $c->singleton(ExclusionService::class, static fn (Container $c): ExclusionService => new ExclusionService($c));
 
         $c->singleton(
             RateLimiter::class,
